@@ -39,6 +39,15 @@ export function AddPaymentDialog({ onAdd, participants, trigger }: AddPaymentDia
   const [fromOpen, setFromOpen] = useState(false);
   const [attachment, setAttachment] = useState<{ name: string; dataUrl: string } | null>(null);
 
+  const resetForm = () => {
+    setAmount("");
+    setDescription("");
+    setCategory("general");
+    setFromList(participants.length > 0 ? [participants[0]] : []);
+    setTo(participants[1] || participants[0] || "");
+    setAttachment(null);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -98,12 +107,7 @@ export function AddPaymentDialog({ onAdd, participants, trigger }: AddPaymentDia
       });
     }
 
-    setAmount("");
-    setDescription("");
-    setCategory("general");
-    setFromList(participants.length > 0 ? [participants[0]] : []);
-    setTo(participants[1] || participants[0] || "");
-    setAttachment(null);
+    resetForm();
     setOpen(false);
   };
 
@@ -118,7 +122,10 @@ export function AddPaymentDialog({ onAdd, participants, trigger }: AddPaymentDia
       open={open}
       onOpenChange={(isOpen) => {
         setOpen(isOpen);
-        if (!isOpen) setFromOpen(false);
+        if (!isOpen) {
+          setFromOpen(false);
+          resetForm();
+        }
       }}
     >
       <DialogTrigger asChild>

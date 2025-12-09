@@ -8,11 +8,22 @@ type CarId = "eric-car" | "leo-car";
 const STORAGE_KEY = "travel-expenses";
 const PAYMENTS_STORAGE_KEY = "travel-payments";
 
-type FirestoreExpense = Omit<Expense, "date"> & { date: string };
-type FirestorePayment = Omit<Payment, "date"> & { date: string };
+type FirestoreExpense = Omit<Expense, "date" | "attachmentName" | "attachmentDataUrl"> & {
+  date: string;
+  attachmentName: string | null;
+  attachmentDataUrl: string | null;
+};
+
+type FirestorePayment = Omit<Payment, "date" | "attachmentName" | "attachmentDataUrl"> & {
+  date: string;
+  attachmentName: string | null;
+  attachmentDataUrl: string | null;
+};
 
 const serializeExpense = (expense: Expense): FirestoreExpense => ({
   ...expense,
+  attachmentName: expense.attachmentName ?? null,
+  attachmentDataUrl: expense.attachmentDataUrl ?? null,
   date: expense.date.toISOString(),
 });
 
@@ -23,6 +34,8 @@ const deserializeExpense = (data: FirestoreExpense): Expense => ({
 
 const serializePayment = (payment: Payment): FirestorePayment => ({
   ...payment,
+  attachmentName: payment.attachmentName ?? null,
+  attachmentDataUrl: payment.attachmentDataUrl ?? null,
   date: payment.date.toISOString(),
 });
 

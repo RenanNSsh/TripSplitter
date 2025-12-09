@@ -161,22 +161,22 @@ export function PaymentList({ payments, participants, onDelete, onUpdate, onAdd 
           filteredPayments.map((payment) => (
             <div
               key={payment.id}
-              className="group bg-card rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 border border-border/50 animate-slide-up"
+              className="group bg-card rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 border border-border/50 animate-slide-up"
             >
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-3 mb-1.5">
                     <CategoryBadge category={payment.category} size="sm" />
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs sm:text-sm text-muted-foreground">
                       {format(payment.date, "dd MMM yyyy", { locale: ptBR })}
                     </span>
                   </div>
 
-                  <p className="text-foreground font-medium truncate mb-1">
+                  <p className="text-sm sm:text-base text-foreground font-medium mb-1 break-words">
                     {payment.description || `Pagamento de ${payment.from} para ${payment.to}`}
                   </p>
 
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     De <span className="font-medium text-foreground">{payment.from}</span> para
                     {" "}
                     <span className="font-medium text-foreground">{payment.to}</span>
@@ -186,7 +186,7 @@ export function PaymentList({ payments, participants, onDelete, onUpdate, onAdd 
                       href={payment.attachmentDataUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                      className="mt-1 inline-flex items-center gap-1 text-xs sm:text-sm text-primary hover:underline"
                     >
                       <Paperclip className="h-3 w-3" />
                       <span>Anexo</span>
@@ -194,8 +194,8 @@ export function PaymentList({ payments, participants, onDelete, onUpdate, onAdd 
                   )}
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-lg font-bold text-foreground">
+                <div className="mt-2 sm:mt-0 flex items-center gap-2 sm:gap-3">
+                  <span className="font-mono text-base sm:text-lg font-semibold text-foreground">
                     R$ {payment.amount.toFixed(2)}
                   </span>
 
@@ -203,7 +203,7 @@ export function PaymentList({ payments, participants, onDelete, onUpdate, onAdd 
                     variant="ghost"
                     size="icon"
                     onClick={() => startEdit(payment)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -211,7 +211,7 @@ export function PaymentList({ payments, participants, onDelete, onUpdate, onAdd 
                     variant="ghost"
                     size="icon"
                     onClick={() => onDelete(payment.id)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                    className="text-muted-foreground hover:text-destructive transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

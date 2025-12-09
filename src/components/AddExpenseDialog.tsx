@@ -35,6 +35,14 @@ export function AddExpenseDialog({ onAdd, participants, trigger }: AddExpenseDia
   const [paidBy, setPaidBy] = useState<string>(participants[0] || "");
   const [attachment, setAttachment] = useState<{ name: string; dataUrl: string } | null>(null);
 
+  const resetForm = () => {
+    setAmount("");
+    setDescription("");
+    setCategory("general");
+    setPaidBy(participants[0] || "");
+    setAttachment(null);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -82,16 +90,20 @@ export function AddExpenseDialog({ onAdd, participants, trigger }: AddExpenseDia
     });
 
     // Reset form
-    setAmount("");
-    setDescription("");
-    setCategory("general");
-    setPaidBy(participants[0] || "");
-    setAttachment(null);
+    resetForm();
     setOpen(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        setOpen(isOpen);
+        if (!isOpen) {
+          resetForm();
+        }
+      }}
+    >
       <DialogTrigger asChild>
         {trigger ?? (
           <Button size="lg" className="gap-2 shadow-lg hover:shadow-glow">

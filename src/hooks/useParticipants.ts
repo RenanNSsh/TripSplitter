@@ -24,7 +24,7 @@ interface FirestoreParticipant {
 const inferDefaultCar = (name: string): CarId | null => {
   const lower = name.toLowerCase();
   if (lower === "eric") return "eric-car";
-  if (lower === "leo") return "leo-car";
+  if (lower === "léo") return "leo-car";
   return null;
 };
 
