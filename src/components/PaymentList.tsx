@@ -184,8 +184,7 @@ export function PaymentList({ payments, participants, onDelete, onUpdate, onAdd 
                   {payment.attachmentName && payment.attachmentDataUrl && (
                     <a
                       href={payment.attachmentDataUrl}
-                      target="_blank"
-                      rel="noreferrer"
+                      download={payment.attachmentName || "anexo"}
                       className="mt-1 inline-flex items-center gap-1 text-xs sm:text-sm text-primary hover:underline"
                     >
                       <Paperclip className="h-3 w-3" />
