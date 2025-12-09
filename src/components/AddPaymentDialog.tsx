@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
 import { ArrowRightLeft, Check, ChevronDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { AttachmentDropzone } from "./AttachmentDropzone";
@@ -198,17 +199,25 @@ export function AddPaymentDialog({ onAdd, participants, trigger }: AddPaymentDia
                     {participants.map((person) => {
                       const selected = fromList.includes(person);
                       return (
-                        <button
+                        <div
                           key={person}
-                          type="button"
-                          onClick={() => toggleFrom(person)}
                           className={`flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground ${
                             selected ? "bg-accent text-accent-foreground" : ""
                           }`}
                         >
-                          <span>{person}</span>
-                          {selected && <Check className="h-4 w-4" />}
-                        </button>
+                          <div className="flex items-center gap-2">
+                            <CheckboxPrimitive.Root
+                              checked={selected}
+                              onCheckedChange={() => toggleFrom(person)}
+                              className="flex h-4 w-4 items-center justify-center rounded border border-input bg-background data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            >
+                              <CheckboxPrimitive.Indicator>
+                                <Check className="h-3 w-3 text-primary-foreground" />
+                              </CheckboxPrimitive.Indicator>
+                            </CheckboxPrimitive.Root>
+                            <span>{person}</span>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
