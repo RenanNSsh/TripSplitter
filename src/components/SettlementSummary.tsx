@@ -40,7 +40,7 @@ export function SettlementSummary({ balances }: SettlementSummaryProps) {
       <div className="bg-card rounded-xl p-6 shadow-md border border-border/50 text-center">
         <div className="text-4xl mb-3">✨</div>
         <h3 className="text-lg font-semibold text-foreground mb-1">Tudo Acertado!</h3>
-        <p className="text-muted-foreground text-sm">Todos pagaram sua parte justa</p>
+        <p className="text-muted-foreground text-sm">Todos pagaram sua parte</p>
       </div>
     );
   }

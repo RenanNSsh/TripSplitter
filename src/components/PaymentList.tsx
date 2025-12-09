@@ -229,7 +229,7 @@ export function PaymentList({ payments, participants, onDelete, onUpdate, onAdd 
           if (!open) setEditing(null);
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Editar Pagamento</DialogTitle>
           </DialogHeader>

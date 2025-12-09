@@ -45,7 +45,7 @@ export function BalanceCard({ balance }: BalanceCardProps) {
         </div>
 
         <div className="flex justify-between items-center">
-          <span className="text-muted-foreground text-sm">Parte justa</span>
+          <span className="text-muted-foreground text-sm">Valor a pagar</span>
           <span className="font-mono text-muted-foreground">
             R$ {balance.totalOwed.toFixed(2)}
           </span>
