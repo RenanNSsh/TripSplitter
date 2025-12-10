@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Expense, Category, CATEGORIES } from "@/types/expense";
+import { Expense, Category, CATEGORIES, Attachment } from "@/types/expense";
 import { ExpenseItem } from "./ExpenseItem";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -38,7 +38,7 @@ export function ExpenseList({ expenses, participants, onDelete, onUpdate, onAdd 
 	const [editDescription, setEditDescription] = useState("");
 	const [editCategory, setEditCategory] = useState<Category>("general");
 	const [editPaidBy, setEditPaidBy] = useState<string>("");
-	const [editAttachment, setEditAttachment] = useState<{ name: string; dataUrl: string } | null>(null);
+	const [editAttachments, setEditAttachments] = useState<Attachment[]>([]);
 	
 	const filteredExpenses =
 		filter === "all" ? expenses : expenses.filter((e) => e.category === filter);
@@ -49,10 +49,12 @@ export function ExpenseList({ expenses, participants, onDelete, onUpdate, onAdd 
 		setEditDescription(expense.description);
 		setEditCategory(expense.category);
 		setEditPaidBy(expense.paidBy);
-		if (expense.attachmentName && expense.attachmentDataUrl) {
-			setEditAttachment({ name: expense.attachmentName, dataUrl: expense.attachmentDataUrl });
+		if (expense.attachments && expense.attachments.length > 0) {
+			setEditAttachments(expense.attachments);
+		} else if (expense.attachmentName && expense.attachmentDataUrl) {
+			setEditAttachments([{ name: expense.attachmentName, dataUrl: expense.attachmentDataUrl }]);
 		} else {
-			setEditAttachment(null);
+			setEditAttachments([]);
 		}
 		setEditOpen(true);
 	};
@@ -95,8 +97,9 @@ export function ExpenseList({ expenses, participants, onDelete, onUpdate, onAdd 
 			description: editDescription.trim(),
 			category: editCategory,
 			paidBy: editPaidBy,
-			attachmentName: editAttachment?.name,
-			attachmentDataUrl: editAttachment?.dataUrl,
+			attachments: editAttachments,
+			attachmentName: editAttachments[0]?.name,
+			attachmentDataUrl: editAttachments[0]?.dataUrl,
 		});
 
 		toast({
@@ -212,8 +215,8 @@ export function ExpenseList({ expenses, participants, onDelete, onUpdate, onAdd 
 
 						<AttachmentDropzone
 							label="Anexo (opcional)"
-							attachmentName={editAttachment?.name}
-							onChange={setEditAttachment}
+							attachments={editAttachments}
+							onChange={setEditAttachments}
 						/>
 
 						<div className="grid grid-cols-2 gap-4">

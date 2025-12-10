@@ -1,5 +1,10 @@
 export type Category = "eric-car" | "leo-car" | "drinks" | "general";
 
+export interface Attachment {
+  name: string;
+  dataUrl: string;
+}
+
 export interface Expense {
   id: string;
   amount: number;
@@ -7,6 +12,7 @@ export interface Expense {
   category: Category;
   paidBy: string;
   date: Date;
+  attachments?: Attachment[];
   attachmentName?: string;
   attachmentDataUrl?: string;
 }
@@ -19,8 +25,9 @@ export interface Payment {
   category: Category;
   date: Date;
   description?: string;
-   attachmentName?: string;
-   attachmentDataUrl?: string;
+  attachments?: Attachment[];
+  attachmentName?: string;
+  attachmentDataUrl?: string;
 }
 
 export interface Balance {

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Category, CATEGORIES, Payment } from "@/types/expense";
+import { Category, CATEGORIES, Payment, Attachment } from "@/types/expense";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -34,7 +34,7 @@ export function AddPaymentDialog({ onAdd, participants, trigger }: AddPaymentDia
   const [category, setCategory] = useState<Category>("general");
   const [from, setFrom] = useState<string>(participants[0] || "");
   const [to, setTo] = useState<string>(participants[1] || participants[0] || "");
-  const [attachment, setAttachment] = useState<{ name: string; dataUrl: string } | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const resetForm = () => {
     setAmount("");
@@ -42,7 +42,7 @@ export function AddPaymentDialog({ onAdd, participants, trigger }: AddPaymentDia
     setCategory("general");
     setFrom(participants[0] || "");
     setTo(participants[1] || participants[0] || "");
-    setAttachment(null);
+    setAttachments([]);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -68,6 +68,7 @@ export function AddPaymentDialog({ onAdd, participants, trigger }: AddPaymentDia
     }
 
     const now = new Date();
+    const mainAttachment = attachments[0];
 
     onAdd({
       amount: parsedAmount,
@@ -76,8 +77,9 @@ export function AddPaymentDialog({ onAdd, participants, trigger }: AddPaymentDia
       from,
       to,
       date: now,
-      attachmentName: attachment?.name,
-      attachmentDataUrl: attachment?.dataUrl,
+      attachments,
+      attachmentName: mainAttachment?.name,
+      attachmentDataUrl: mainAttachment?.dataUrl,
     });
 
     toast({
@@ -143,8 +145,8 @@ export function AddPaymentDialog({ onAdd, participants, trigger }: AddPaymentDia
 
           <AttachmentDropzone
             label="Anexo (opcional)"
-            attachmentName={attachment?.name}
-            onChange={setAttachment}
+            attachments={attachments}
+            onChange={setAttachments}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

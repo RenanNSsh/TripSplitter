@@ -20,29 +20,81 @@ type FirestorePayment = Omit<Payment, "date" | "attachmentName" | "attachmentDat
   attachmentDataUrl: string | null;
 };
 
-const serializeExpense = (expense: Expense): FirestoreExpense => ({
-  ...expense,
-  attachmentName: expense.attachmentName ?? null,
-  attachmentDataUrl: expense.attachmentDataUrl ?? null,
-  date: expense.date.toISOString(),
-});
+const serializeExpense = (expense: Expense): FirestoreExpense => {
+  const normalizedAttachments =
+    expense.attachments && expense.attachments.length > 0
+      ? expense.attachments
+      : expense.attachmentName && expense.attachmentDataUrl
+        ? [{ name: expense.attachmentName, dataUrl: expense.attachmentDataUrl }]
+        : [];
 
-const deserializeExpense = (data: FirestoreExpense): Expense => ({
-  ...data,
-  date: new Date(data.date),
-});
+  const first = normalizedAttachments[0];
 
-const serializePayment = (payment: Payment): FirestorePayment => ({
-  ...payment,
-  attachmentName: payment.attachmentName ?? null,
-  attachmentDataUrl: payment.attachmentDataUrl ?? null,
-  date: payment.date.toISOString(),
-});
+  return {
+    ...expense,
+    attachments: normalizedAttachments,
+    attachmentName: expense.attachmentName ?? first?.name ?? null,
+    attachmentDataUrl: expense.attachmentDataUrl ?? first?.dataUrl ?? null,
+    date: expense.date.toISOString(),
+  };
+};
 
-const deserializePayment = (data: FirestorePayment): Payment => ({
-  ...data,
-  date: new Date(data.date),
-});
+const deserializeExpense = (data: FirestoreExpense): Expense => {
+  const { date, attachmentName, attachmentDataUrl, attachments, ...rest } = data as FirestoreExpense & {
+    attachments?: { name: string; dataUrl: string }[];
+  };
+
+  let normalizedAttachments = attachments ?? [];
+  if (normalizedAttachments.length === 0 && attachmentName && attachmentDataUrl) {
+    normalizedAttachments = [{ name: attachmentName, dataUrl: attachmentDataUrl }];
+  }
+
+  return {
+    ...rest,
+    date: new Date(date),
+    attachments: normalizedAttachments,
+    attachmentName: attachmentName ?? undefined,
+    attachmentDataUrl: attachmentDataUrl ?? undefined,
+  };
+};
+
+const serializePayment = (payment: Payment): FirestorePayment => {
+  const normalizedAttachments =
+    payment.attachments && payment.attachments.length > 0
+      ? payment.attachments
+      : payment.attachmentName && payment.attachmentDataUrl
+        ? [{ name: payment.attachmentName, dataUrl: payment.attachmentDataUrl }]
+        : [];
+
+  const first = normalizedAttachments[0];
+
+  return {
+    ...payment,
+    attachments: normalizedAttachments,
+    attachmentName: payment.attachmentName ?? first?.name ?? null,
+    attachmentDataUrl: payment.attachmentDataUrl ?? first?.dataUrl ?? null,
+    date: payment.date.toISOString(),
+  };
+};
+
+const deserializePayment = (data: FirestorePayment): Payment => {
+  const { date, attachmentName, attachmentDataUrl, attachments, ...rest } = data as FirestorePayment & {
+    attachments?: { name: string; dataUrl: string }[];
+  };
+
+  let normalizedAttachments = attachments ?? [];
+  if (normalizedAttachments.length === 0 && attachmentName && attachmentDataUrl) {
+    normalizedAttachments = [{ name: attachmentName, dataUrl: attachmentDataUrl }];
+  }
+
+  return {
+    ...rest,
+    date: new Date(date),
+    attachments: normalizedAttachments,
+    attachmentName: attachmentName ?? undefined,
+    attachmentDataUrl: attachmentDataUrl ?? undefined,
+  };
+};
 
 const loadExpenses = (): Expense[] => {
   try {

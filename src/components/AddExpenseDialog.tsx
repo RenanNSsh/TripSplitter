@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Category, CATEGORIES, Expense } from "@/types/expense";
+import { Category, CATEGORIES, Expense, Attachment } from "@/types/expense";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -33,14 +33,14 @@ export function AddExpenseDialog({ onAdd, participants, trigger }: AddExpenseDia
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<Category>("general");
   const [paidBy, setPaidBy] = useState<string>(participants[0] || "");
-  const [attachment, setAttachment] = useState<{ name: string; dataUrl: string } | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const resetForm = () => {
     setAmount("");
     setDescription("");
     setCategory("general");
     setPaidBy(participants[0] || "");
-    setAttachment(null);
+    setAttachments([]);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -74,14 +74,17 @@ export function AddExpenseDialog({ onAdd, participants, trigger }: AddExpenseDia
       return;
     }
 
+    const mainAttachment = attachments[0];
+
     onAdd({
       amount: parsedAmount,
       description: description.trim(),
       category,
       paidBy,
       date: new Date(),
-      attachmentName: attachment?.name,
-      attachmentDataUrl: attachment?.dataUrl,
+      attachments,
+      attachmentName: mainAttachment?.name,
+      attachmentDataUrl: mainAttachment?.dataUrl,
     });
 
     toast({
@@ -144,8 +147,8 @@ export function AddExpenseDialog({ onAdd, participants, trigger }: AddExpenseDia
 
           <AttachmentDropzone
             label="Anexo (opcional)"
-            attachmentName={attachment?.name}
-            onChange={setAttachment}
+            attachments={attachments}
+            onChange={setAttachments}
           />
 
           <div className="grid grid-cols-2 gap-4">

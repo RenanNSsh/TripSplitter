@@ -100,7 +100,7 @@ export function ParticipantsManager({ participants, participantCars, participant
           {participants.length} Participantes
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="sm:max-w-3xl max-h-[calc(100vh-3rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Gerenciar Participantes</DialogTitle>
         </DialogHeader>
@@ -136,7 +136,7 @@ export function ParticipantsManager({ participants, participantCars, participant
             </Button>
           </form>
           
-          <div className="space-y-2 max-h-[80vh] overflow-y-auto pr-1">
+          <div className="space-y-2 pr-1">
             {participants.map((person) => (
               <div
                 key={person}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Payment, Category, CATEGORIES } from "@/types/expense";
+import { Payment, Category, CATEGORIES, Attachment } from "@/types/expense";
 import { CategoryBadge } from "./CategoryBadge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -41,7 +41,7 @@ export function PaymentList({ payments, participants, onDelete, onUpdate, onAdd 
   const [editCategory, setEditCategory] = useState<Category>("general");
   const [editFrom, setEditFrom] = useState<string>(" ");
   const [editTo, setEditTo] = useState<string>(" ");
-  const [editAttachment, setEditAttachment] = useState<{ name: string; dataUrl: string } | null>(null);
+  const [editAttachments, setEditAttachments] = useState<Attachment[]>([]);
 
   const filteredPayments =
     filter === "all" ? payments : payments.filter((p) => p.category === filter);
@@ -53,10 +53,12 @@ export function PaymentList({ payments, participants, onDelete, onUpdate, onAdd 
     setEditCategory(payment.category);
     setEditFrom(payment.from);
     setEditTo(payment.to);
-    if (payment.attachmentName && payment.attachmentDataUrl) {
-      setEditAttachment({ name: payment.attachmentName, dataUrl: payment.attachmentDataUrl });
+    if (payment.attachments && payment.attachments.length > 0) {
+      setEditAttachments(payment.attachments);
+    } else if (payment.attachmentName && payment.attachmentDataUrl) {
+      setEditAttachments([{ name: payment.attachmentName, dataUrl: payment.attachmentDataUrl }]);
     } else {
-      setEditAttachment(null);
+      setEditAttachments([]);
     }
     setEditOpen(true);
   };
@@ -91,8 +93,9 @@ export function PaymentList({ payments, participants, onDelete, onUpdate, onAdd 
       category: editCategory,
       from: editFrom,
       to: editTo,
-      attachmentName: editAttachment?.name,
-      attachmentDataUrl: editAttachment?.dataUrl,
+      attachments: editAttachments,
+      attachmentName: editAttachments[0]?.name,
+      attachmentDataUrl: editAttachments[0]?.dataUrl,
     });
 
     toast({
@@ -158,66 +161,73 @@ export function PaymentList({ payments, participants, onDelete, onUpdate, onAdd 
             <p className="text-sm mt-1">Use o botão acima para registrar um pagamento</p>
           </div>
         ) : (
-          filteredPayments.map((payment) => (
-            <div
-              key={payment.id}
-              className="group bg-card rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 border border-border/50 animate-slide-up"
-            >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-1.5">
-                    <CategoryBadge category={payment.category} size="sm" />
-                    <span className="text-xs sm:text-sm text-muted-foreground">
-                      {format(payment.date, "dd MMM yyyy", { locale: ptBR })}
-                    </span>
+          filteredPayments.map((payment) => {
+            const mainAttachment =
+              (payment.attachments && payment.attachments[0]) ||
+              (payment.attachmentName && payment.attachmentDataUrl
+                ? { name: payment.attachmentName, dataUrl: payment.attachmentDataUrl }
+                : null);
+
+            return (
+              <div
+                key={payment.id}
+                className="group bg-card rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 border border-border/50 animate-slide-up"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <CategoryBadge category={payment.category} size="sm" />
+                      <span className="text-xs sm:text-sm text-muted-foreground">
+                        {format(payment.date, "dd MMM yyyy", { locale: ptBR })}
+                      </span>
+                    </div>
+
+                    <p className="text-sm sm:text-base text-foreground font-medium mb-1 break-words">
+                      {payment.description || `Pagamento de ${payment.from} para ${payment.to}`}
+                    </p>
+
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      De <span className="font-medium text-foreground">{payment.from}</span> para{" "}
+                      <span className="font-medium text-foreground">{payment.to}</span>
+                    </p>
+                    {mainAttachment && (
+                      <a
+                        href={mainAttachment.dataUrl}
+                        download={mainAttachment.name || "anexo"}
+                        className="mt-1 inline-flex items-center gap-1 text-xs sm:text-sm text-primary hover:underline"
+                      >
+                        <Paperclip className="h-3 w-3" />
+                        <span>Anexo</span>
+                      </a>
+                    )}
                   </div>
 
-                  <p className="text-sm sm:text-base text-foreground font-medium mb-1 break-words">
-                    {payment.description || `Pagamento de ${payment.from} para ${payment.to}`}
-                  </p>
+                  <div className="mt-2 sm:mt-0 flex items-center gap-2 sm:gap-3">
+                    <span className="font-mono text-base sm:text-lg font-semibold text-foreground">
+                      R$ {payment.amount.toFixed(2)}
+                    </span>
 
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    De <span className="font-medium text-foreground">{payment.from}</span> para
-                    {" "}
-                    <span className="font-medium text-foreground">{payment.to}</span>
-                  </p>
-                  {payment.attachmentName && payment.attachmentDataUrl && (
-                    <a
-                      href={payment.attachmentDataUrl}
-                      download={payment.attachmentName || "anexo"}
-                      className="mt-1 inline-flex items-center gap-1 text-xs sm:text-sm text-primary hover:underline"
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => startEdit(payment)}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      <Paperclip className="h-3 w-3" />
-                      <span>Anexo</span>
-                    </a>
-                  )}
-                </div>
-
-                <div className="mt-2 sm:mt-0 flex items-center gap-2 sm:gap-3">
-                  <span className="font-mono text-base sm:text-lg font-semibold text-foreground">
-                    R$ {payment.amount.toFixed(2)}
-                  </span>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => startEdit(payment)}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onDelete(payment.id)}
-                    className="text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onDelete(payment.id)}
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -260,8 +270,8 @@ export function PaymentList({ payments, participants, onDelete, onUpdate, onAdd 
 
             <AttachmentDropzone
               label="Anexo (opcional)"
-              attachmentName={editAttachment?.name}
-              onChange={setEditAttachment}
+              attachments={editAttachments}
+              onChange={setEditAttachments}
             />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

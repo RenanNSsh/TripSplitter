@@ -12,6 +12,12 @@ interface ExpenseItemProps {
 }
 
  export function ExpenseItem({ expense, onDelete, onEdit }: ExpenseItemProps) {
+  const mainAttachment =
+    (expense.attachments && expense.attachments[0]) ||
+    (expense.attachmentName && expense.attachmentDataUrl
+      ? { name: expense.attachmentName, dataUrl: expense.attachmentDataUrl }
+      : null);
+
   return (
     <div className="group bg-card rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 border border-border/50 animate-slide-up">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -30,10 +36,10 @@ interface ExpenseItemProps {
           <p className="text-xs sm:text-sm text-muted-foreground">
             Pago por <span className="font-medium text-foreground">{expense.paidBy}</span>
           </p>
-          {expense.attachmentName && expense.attachmentDataUrl && (
+          {mainAttachment && (
             <a
-              href={expense.attachmentDataUrl}
-              download={expense.attachmentName || "anexo"}
+              href={mainAttachment.dataUrl}
+              download={mainAttachment.name || "anexo"}
               className="mt-1 inline-flex items-center gap-1 text-xs sm:text-sm text-primary hover:underline"
             >
               <Paperclip className="h-3 w-3" />
