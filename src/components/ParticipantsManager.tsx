@@ -100,7 +100,7 @@ export function ParticipantsManager({ participants, participantCars, participant
           {participants.length} Participantes
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-3xl max-h-[calc(100vh-3rem)] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[calc(100vh-3rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Gerenciar Participantes</DialogTitle>
         </DialogHeader>
@@ -148,12 +148,12 @@ export function ParticipantsManager({ participants, participantCars, participant
                   </div>
                   <span className="font-medium text-foreground">{person}</span>
                 </div>
-                <div className="flex items-center gap-2 mt-1 sm:mt-0">
+                <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 mt-1 sm:mt-0 w-full">
                   <Select
                     value={(participantCars[person] ?? "eric-car") as CarId}
                     onValueChange={(v) => onChangeCar(person, v as CarId)}
                   >
-                    <SelectTrigger className="w-[200px]">
+                    <SelectTrigger className="w-full sm:w-[200px]">
                       <SelectValue placeholder="Carro" />
                     </SelectTrigger>
                     <SelectContent>
@@ -164,7 +164,7 @@ export function ParticipantsManager({ participants, participantCars, participant
                   <Button
                     variant={participantDrinks[person] ? "secondary" : "outline"}
                     size="sm"
-                    className="w-[110px] justify-center"
+                    className="w-full sm:w-[110px] justify-center"
                     onClick={() => onSetDrinks(person, !participantDrinks[person])}
                   >
                     {participantDrinks[person] ? "Bebe" : "Não bebe"}
@@ -172,7 +172,7 @@ export function ParticipantsManager({ participants, participantCars, participant
                   <Button
                     variant={participantFinished[person] ? "success" : "outline"}
                     size="sm"
-                    className="w-[120px] justify-center"
+                    className="w-full sm:w-[120px] justify-center"
                     onClick={() => onSetFinished(person, !participantFinished[person])}
                   >
                     {participantFinished[person] ? "Finalizado" : "Aberto"}
