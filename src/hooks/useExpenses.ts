@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { Expense, Balance, Payment } from "@/types/expense";
 import { db, isFirebaseConfigured } from "@/lib/firebase";
 import { collection, doc, getDocs, onSnapshot, setDoc, deleteDoc } from "firebase/firestore";
+import { logActivity } from "@/lib/telemetry";
 
 type CarId = "eric-car" | "leo-car";
 
@@ -19,6 +20,25 @@ type FirestorePayment = Omit<Payment, "date" | "attachmentName" | "attachmentDat
   attachmentName: string | null;
   attachmentDataUrl: string | null;
 };
+
+const toExpenseLogData = (expense: Expense) => ({
+  amount: expense.amount,
+  category: expense.category,
+  paidBy: expense.paidBy,
+  description: expense.description,
+  date: expense.date.toISOString(),
+  attachmentsCount: expense.attachments?.length ?? 0,
+});
+
+const toPaymentLogData = (payment: Payment) => ({
+  amount: payment.amount,
+  category: payment.category,
+  from: payment.from,
+  to: payment.to,
+  description: payment.description ?? null,
+  date: payment.date.toISOString(),
+  attachmentsCount: payment.attachments?.length ?? 0,
+});
 
 const serializeExpense = (expense: Expense): FirestoreExpense => {
   const normalizedAttachments =
@@ -172,6 +192,7 @@ export function useExpenses(
         ]);
 
         if (expensesSnap.empty && localExpenses.length > 0) {
+          void logActivity({ action: "seed", entity: "expenses", data: { count: localExpenses.length } });
           await Promise.all(
             localExpenses.map((expense) =>
               setDoc(doc(expensesRef, expense.id), serializeExpense(expense)),
@@ -180,6 +201,7 @@ export function useExpenses(
         }
 
         if (paymentsSnap.empty && localPayments.length > 0) {
+          void logActivity({ action: "seed", entity: "payments", data: { count: localPayments.length } });
           await Promise.all(
             localPayments.map((payment) =>
               setDoc(doc(paymentsRef, payment.id), serializePayment(payment)),
@@ -245,6 +267,13 @@ export function useExpenses(
         console.error("Failed to save expense to Firestore:", e);
       });
     }
+
+    void logActivity({
+      action: "create",
+      entity: "expense",
+      entityId: newExpense.id,
+      data: toExpenseLogData(newExpense),
+    });
   }, []);
 
   const deleteExpense = useCallback((id: string) => {
@@ -259,6 +288,8 @@ export function useExpenses(
         console.error("Failed to delete expense from Firestore:", e);
       });
     }
+
+    void logActivity({ action: "delete", entity: "expense", entityId: id });
   }, []);
 
   const updateExpense = useCallback((updatedExpense: Expense) => {
@@ -273,6 +304,13 @@ export function useExpenses(
         console.error("Failed to update expense in Firestore:", e);
       });
     }
+
+    void logActivity({
+      action: "update",
+      entity: "expense",
+      entityId: updatedExpense.id,
+      data: toExpenseLogData(updatedExpense),
+    });
   }, []);
 
   const addPayment = useCallback((payment: Omit<Payment, "id">) => {
@@ -291,6 +329,13 @@ export function useExpenses(
         console.error("Failed to save payment to Firestore:", e);
       });
     }
+
+    void logActivity({
+      action: "create",
+      entity: "payment",
+      entityId: newPayment.id,
+      data: toPaymentLogData(newPayment),
+    });
   }, []);
 
   const deletePayment = useCallback((id: string) => {
@@ -305,6 +350,8 @@ export function useExpenses(
         console.error("Failed to delete payment from Firestore:", e);
       });
     }
+
+    void logActivity({ action: "delete", entity: "payment", entityId: id });
   }, []);
 
   const updatePayment = useCallback((updatedPayment: Payment) => {
@@ -319,6 +366,13 @@ export function useExpenses(
         console.error("Failed to update payment in Firestore:", e);
       });
     }
+
+    void logActivity({
+      action: "update",
+      entity: "payment",
+      entityId: updatedPayment.id,
+      data: toPaymentLogData(updatedPayment),
+    });
   }, []);
 
   const balances = useMemo((): Balance[] => {

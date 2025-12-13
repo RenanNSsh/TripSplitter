@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { DEFAULT_PARTICIPANTS } from "@/types/expense";
 import { db, isFirebaseConfigured } from "@/lib/firebase";
 import { collection, doc, getDocs, onSnapshot, setDoc, deleteDoc } from "firebase/firestore";
+import { logActivity } from "@/lib/telemetry";
 
 type CarId = "eric-car" | "leo-car";
 
@@ -20,6 +21,13 @@ interface FirestoreParticipant {
   finished: boolean;
   drinks: boolean;
 }
+
+const toParticipantLogData = (participant: StoredParticipant) => ({
+  name: participant.name,
+  car: participant.car ?? null,
+  finished: participant.finished ?? false,
+  drinks: participant.drinks ?? true,
+});
 
 const inferDefaultCar = (name: string): CarId | null => {
   const lower = name.toLowerCase();
@@ -90,6 +98,11 @@ export function useParticipants() {
         const snap = await getDocs(participantsRef);
 
         if (snap.empty && localParticipants.length > 0) {
+          void logActivity({
+            action: "seed",
+            entity: "participants",
+            data: { count: localParticipants.length },
+          });
           await Promise.all(
             localParticipants.map((p) =>
               setDoc(doc(participantsRef, p.name), {
@@ -164,6 +177,13 @@ export function useParticipants() {
       }
       return updated;
     });
+
+    void logActivity({
+      action: "create",
+      entity: "participant",
+      entityId: trimmedName,
+      data: toParticipantLogData({ name: trimmedName, car: effectiveCar, finished: false, drinks: true }),
+    });
     return true;
   }, []);
 
@@ -180,6 +200,8 @@ export function useParticipants() {
       }
       return updated;
     });
+
+    void logActivity({ action: "delete", entity: "participant", entityId: name });
   }, []);
 
   const setParticipantCar = useCallback((name: string, car: CarId | null) => {
@@ -208,6 +230,13 @@ export function useParticipants() {
         }
       }
       return updated;
+    });
+
+    void logActivity({
+      action: "update",
+      entity: "participant",
+      entityId: name,
+      data: { car },
     });
   }, []);
 
@@ -238,6 +267,13 @@ export function useParticipants() {
       }
       return updated;
     });
+
+    void logActivity({
+      action: "update",
+      entity: "participant",
+      entityId: name,
+      data: { finished },
+    });
   }, []);
 
   const setParticipantDrinks = useCallback((name: string, drinks: boolean) => {
@@ -266,6 +302,13 @@ export function useParticipants() {
         }
       }
       return updated;
+    });
+
+    void logActivity({
+      action: "update",
+      entity: "participant",
+      entityId: name,
+      data: { drinks },
     });
   }, []);
 
