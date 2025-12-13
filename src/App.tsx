@@ -6,13 +6,23 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import { logEvent } from "firebase/analytics";
 import { logActivity, startPresenceHeartbeat } from "./lib/telemetry";
+import { analytics } from "./lib/firebase";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   useEffect(() => {
     const stop = startPresenceHeartbeat();
+
+		if (analytics) {
+			try {
+				logEvent(analytics, "app_opened");
+			} catch {
+				void 0;
+			}
+		}
 
     try {
       if (sessionStorage.getItem("trip-splitter-session-started") !== "1") {
