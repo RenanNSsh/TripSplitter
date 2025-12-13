@@ -100,7 +100,7 @@ export function ParticipantsManager({ participants, participantCars, participant
           {participants.length} Participantes
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl max-h-[calc(100vh-3rem)] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[calc(100vh-3rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Gerenciar Participantes</DialogTitle>
         </DialogHeader>
@@ -112,6 +112,7 @@ export function ParticipantsManager({ participants, participantCars, participant
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               maxLength={30}
+              className="w-full sm:flex-1 min-w-0"
             />
             <Select value={newCar} onValueChange={(v) => setNewCar(v as CarId)}>
               <SelectTrigger className="w-full sm:w-[200px]">
@@ -142,13 +143,13 @@ export function ParticipantsManager({ participants, participantCars, participant
                 key={person}
                 className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between p-3 bg-muted rounded-lg"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 w-full sm:flex-1 min-w-0">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
                     {person[0].toUpperCase()}
                   </div>
-                  <span className="font-medium text-foreground">{person}</span>
+                  <span className="font-medium text-foreground min-w-0 truncate">{person}</span>
                 </div>
-                <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 mt-1 sm:mt-0 w-full">
+                <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 mt-1 sm:mt-0 w-full sm:w-auto">
                   <Select
                     value={(participantCars[person] ?? "eric-car") as CarId}
                     onValueChange={(v) => onChangeCar(person, v as CarId)}
