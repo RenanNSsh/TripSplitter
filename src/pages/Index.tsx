@@ -39,7 +39,7 @@ const Index = () => {
   const carEricTotal = expensesByCategory["eric-car"] || 0;
   const carLeoTotal = expensesByCategory["leo-car"] || 0;
   const carSum = carEricTotal + carLeoTotal;
-  const adjustedTotalForAverage = totalExpenses - carSum + carSum / 2;
+  const adjustedTotalForAverage = totalExpenses;
   const perPersonAverage =
     participants.length > 0 ? adjustedTotalForAverage / participants.length : 0;
 
