@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Category, CATEGORIES, Payment, Attachment } from "@/types/expense";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -23,25 +23,31 @@ import { AttachmentDropzone } from "./AttachmentDropzone";
 
 interface AddPaymentDialogProps {
   onAdd: (payment: Omit<Payment, "id">) => void;
-  participants: string[];
+  entities: string[];
+  entityMembers: Record<string, string[]>;
   trigger?: ReactNode;
 }
 
-export function AddPaymentDialog({ onAdd, participants, trigger }: AddPaymentDialogProps) {
+export function AddPaymentDialog({ onAdd, entities, entityMembers, trigger }: AddPaymentDialogProps) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<Category>("general");
-  const [from, setFrom] = useState<string>(participants[0] || "");
-  const [to, setTo] = useState<string>(participants[1] || participants[0] || "");
+  const [from, setFrom] = useState<string>(entities[0] || "");
+  const [to, setTo] = useState<string>(entities[1] || entities[0] || "");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+
+  useEffect(() => {
+    setFrom((prev) => (entities.includes(prev) ? prev : entities[0] || ""));
+    setTo((prev) => (entities.includes(prev) ? prev : entities[1] || entities[0] || ""));
+  }, [entities]);
 
   const resetForm = () => {
     setAmount("");
     setDescription("");
     setCategory("general");
-    setFrom(participants[0] || "");
-    setTo(participants[1] || participants[0] || "");
+    setFrom(entities[0] || "");
+    setTo(entities[1] || entities[0] || "");
     setAttachments([]);
   };
 
@@ -157,9 +163,9 @@ export function AddPaymentDialog({ onAdd, participants, trigger }: AddPaymentDia
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {participants.map((person) => (
-                    <SelectItem key={person} value={person}>
-                      {person}
+                  {entities.map((entity) => (
+                    <SelectItem key={entity} value={entity}>
+                      {entityMembers[entity]?.length > 1 ? `${entity} (grupo)` : entity}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -173,9 +179,9 @@ export function AddPaymentDialog({ onAdd, participants, trigger }: AddPaymentDia
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {participants.map((person) => (
-                    <SelectItem key={person} value={person}>
-                      {person}
+                  {entities.map((entity) => (
+                    <SelectItem key={entity} value={entity}>
+                      {entityMembers[entity]?.length > 1 ? `${entity} (grupo)` : entity}
                     </SelectItem>
                   ))}
                 </SelectContent>

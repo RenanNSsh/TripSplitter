@@ -165,9 +165,11 @@ const savePayments = (payments: Payment[]) => {
 };
 
 export function useExpenses(
-	participants: string[],
-	participantCars: Record<string, CarId | null>,
-	participantDrinks: Record<string, boolean>,
+  participants: string[],
+  participantCars: Record<string, CarId | null>,
+  participantDrinks: Record<string, boolean>,
+  entities: string[],
+  entityMembers: Record<string, string[]>,
 ) {
   const [expenses, setExpenses] = useState<Expense[]>(loadExpenses);
   const [payments, setPayments] = useState<Payment[]>(loadPayments);
@@ -375,13 +377,19 @@ export function useExpenses(
     });
   }, []);
 
-  const balances = useMemo((): Balance[] => {
+  const personBalances = useMemo((): Balance[] => {
     if (participants.length === 0) return [];
 
     const owedByPerson: Record<string, number> = {};
     for (const person of participants) {
       owedByPerson[person] = 0;
     }
+
+    const getMembers = (entity: string): string[] => {
+      const members = entityMembers[entity];
+      if (members && members.length > 0) return members;
+      return [entity];
+    };
 
     for (const expense of expenses) {
       let eligible: string[] = [];
@@ -414,24 +422,30 @@ export function useExpenses(
       paymentsReceived[person] = 0;
     }
     for (const payment of payments) {
-      if (!(payment.from in transferDelta)) {
-        transferDelta[payment.from] = 0;
-        paymentsMade[payment.from] = 0;
+      const fromMembers = getMembers(payment.from).filter((m) => m in transferDelta);
+      const toMembers = getMembers(payment.to).filter((m) => m in transferDelta);
+
+      const fromShare = fromMembers.length > 0 ? payment.amount / fromMembers.length : 0;
+      const toShare = toMembers.length > 0 ? payment.amount / toMembers.length : 0;
+
+      for (const m of fromMembers) {
+        transferDelta[m] += fromShare;
+        paymentsMade[m] += fromShare;
       }
-      if (!(payment.to in transferDelta)) {
-        transferDelta[payment.to] = 0;
-        paymentsReceived[payment.to] = 0;
+      for (const m of toMembers) {
+        transferDelta[m] -= toShare;
+        paymentsReceived[m] += toShare;
       }
-      transferDelta[payment.from] += payment.amount;
-      transferDelta[payment.to] -= payment.amount;
-      paymentsMade[payment.from] += payment.amount;
-      paymentsReceived[payment.to] += payment.amount;
     }
 
     return participants.map((person) => {
       const totalPaid = expenses
-        .filter((e) => e.paidBy === person)
-        .reduce((sum, e) => sum + e.amount, 0);
+        .filter((e) => getMembers(e.paidBy).includes(person))
+        .reduce((sum, e) => {
+          const members = getMembers(e.paidBy).filter((m) => participants.includes(m));
+          const share = members.length > 0 ? e.amount / members.length : 0;
+          return sum + share;
+        }, 0);
 
       const totalOwed = owedByPerson[person] ?? 0;
       const adjustment = transferDelta[person] ?? 0;
@@ -448,7 +462,49 @@ export function useExpenses(
         totalPaymentsReceived,
       };
     });
-  }, [expenses, participants, participantCars, participantDrinks, payments]);
+  }, [entityMembers, expenses, participants, participantCars, participantDrinks, payments]);
+
+  const groupBalances = useMemo((): Balance[] => {
+    const participantMap = personBalances.reduce<Record<string, Balance>>((acc, b) => {
+      acc[b.person] = b;
+      return acc;
+    }, {});
+
+    return entities
+      .filter((entity) => {
+        const members = entityMembers[entity];
+        return members && members.length > 1;
+      })
+      .map((entity) => {
+        const members = entityMembers[entity] || [];
+        const aggregated = members.reduce(
+          (acc, m) => {
+            const b = participantMap[m];
+            if (!b) return acc;
+            acc.totalPaid += b.totalPaid;
+            acc.totalOwed += b.totalOwed;
+            acc.netBalance += b.netBalance;
+            acc.totalPaymentsMade += b.totalPaymentsMade;
+            acc.totalPaymentsReceived += b.totalPaymentsReceived;
+            return acc;
+          },
+          {
+            totalPaid: 0,
+            totalOwed: 0,
+            netBalance: 0,
+            totalPaymentsMade: 0,
+            totalPaymentsReceived: 0,
+          },
+        );
+
+        return {
+          person: entity,
+          ...aggregated,
+        };
+      });
+  }, [entities, entityMembers, personBalances]);
+
+  const balances = useMemo(() => [...groupBalances, ...personBalances], [groupBalances, personBalances]);
 
   const totalExpenses = useMemo(() => {
     return expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -471,6 +527,8 @@ export function useExpenses(
     deletePayment,
     updatePayment,
     balances,
+    personBalances,
+    groupBalances,
     totalExpenses,
     expensesByCategory,
   };

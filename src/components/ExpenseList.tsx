@@ -24,13 +24,14 @@ import { toast } from "@/hooks/use-toast";
 
 interface ExpenseListProps {
 	expenses: Expense[];
-	participants: string[];
+	entities: string[];
+	entityMembers: Record<string, string[]>;
 	onDelete: (id: string) => void;
 	onUpdate: (expense: Expense) => void;
 	onAdd: (expense: Omit<Expense, "id">) => void;
 }
 
-export function ExpenseList({ expenses, participants, onDelete, onUpdate, onAdd }: ExpenseListProps) {
+export function ExpenseList({ expenses, entities, entityMembers, onDelete, onUpdate, onAdd }: ExpenseListProps) {
 	const [filter, setFilter] = useState<Category | "all">("all");
 	const [editing, setEditing] = useState<Expense | null>(null);
 	const [editOpen, setEditOpen] = useState(false);
@@ -118,7 +119,8 @@ export function ExpenseList({ expenses, participants, onDelete, onUpdate, onAdd 
 					<h2 className="text-xl font-semibold text-foreground">Despesas</h2>
 					<AddExpenseDialog
 						onAdd={onAdd}
-						participants={participants}
+						entities={entities}
+						entityMembers={entityMembers}
 						trigger={
 							<Button
 								variant="ghost"
@@ -243,9 +245,9 @@ export function ExpenseList({ expenses, participants, onDelete, onUpdate, onAdd 
 										<SelectValue />
 									</SelectTrigger>
 									<SelectContent>
-										{participants.map((person) => (
-											<SelectItem key={person} value={person}>
-												{person}
+										{entities.map((entity) => (
+											<SelectItem key={entity} value={entity}>
+												{entityMembers[entity]?.length > 1 ? `${entity} (grupo)` : entity}
 											</SelectItem>
 										))}
 									</SelectContent>

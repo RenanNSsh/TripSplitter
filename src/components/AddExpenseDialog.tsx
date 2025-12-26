@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Category, CATEGORIES, Expense, Attachment } from "@/types/expense";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -23,23 +23,28 @@ import { AttachmentDropzone } from "./AttachmentDropzone";
 
 interface AddExpenseDialogProps {
   onAdd: (expense: Omit<Expense, "id">) => void;
-  participants: string[];
+  entities: string[];
+  entityMembers: Record<string, string[]>;
   trigger?: ReactNode;
 }
 
-export function AddExpenseDialog({ onAdd, participants, trigger }: AddExpenseDialogProps) {
+export function AddExpenseDialog({ onAdd, entities, entityMembers, trigger }: AddExpenseDialogProps) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<Category>("general");
-  const [paidBy, setPaidBy] = useState<string>(participants[0] || "");
+  const [paidBy, setPaidBy] = useState<string>(entities[0] || "");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+
+  useEffect(() => {
+    setPaidBy((prev) => (entities.includes(prev) ? prev : entities[0] || ""));
+  }, [entities]);
 
   const resetForm = () => {
     setAmount("");
     setDescription("");
     setCategory("general");
-    setPaidBy(participants[0] || "");
+    setPaidBy(entities[0] || "");
     setAttachments([]);
   };
 
@@ -132,6 +137,9 @@ export function AddExpenseDialog({ onAdd, participants, trigger }: AddExpenseDia
               onChange={(e) => setAmount(e.target.value)}
               className="font-mono text-lg"
             />
+            <span className="text-xs sm:text-sm text-muted-foreground">
+              Pago por <span className="font-medium text-foreground">{paidBy}</span>
+            </span>
           </div>
 
           <div className="space-y-2">
@@ -175,9 +183,9 @@ export function AddExpenseDialog({ onAdd, participants, trigger }: AddExpenseDia
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {participants.map((person) => (
-                    <SelectItem key={person} value={person}>
-                      {person}
+                  {entities.map((entity) => (
+                    <SelectItem key={entity} value={entity}>
+                      {entityMembers[entity]?.length > 1 ? `${entity} (grupo)` : entity}
                     </SelectItem>
                   ))}
                 </SelectContent>

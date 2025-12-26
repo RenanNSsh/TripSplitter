@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Balance } from "@/types/expense";
 import { ArrowRight } from "lucide-react";
 import {
@@ -11,10 +11,38 @@ import {
 
 interface SettlementSummaryProps {
   balances: Balance[];
+  entityMembers: Record<string, string[]>;
+  useGroups?: boolean;
 }
 
-export function SettlementSummary({ balances }: SettlementSummaryProps) {
-  const people = useMemo(() => balances.map((b) => b.person), [balances]);
+export function SettlementSummary({ balances, entityMembers, useGroups = false }: SettlementSummaryProps) {
+  const memberToGroup = useMemo(() => {
+    const map: Record<string, string> = {};
+    Object.entries(entityMembers).forEach(([entity, members]) => {
+      if (members.length > 1) {
+        members.forEach((m) => {
+          map[m] = entity;
+        });
+      }
+    });
+    return map;
+  }, [entityMembers]);
+
+  const displayName = useCallback(
+    (name: string) => {
+      if (useGroups && memberToGroup[name]) {
+        return memberToGroup[name];
+      }
+      return name;
+    },
+    [memberToGroup, useGroups],
+  );
+
+  const people = useMemo(() => {
+    const names = balances.map((b) => displayName(b.person));
+    return Array.from(new Set(names));
+  }, [balances, displayName]);
+
   const [personFilter, setPersonFilter] = useState<string>("all");
 
   // Calculate settlements using a simplified algorithm
@@ -36,8 +64,8 @@ export function SettlementSummary({ balances }: SettlementSummaryProps) {
       const amount = Math.min(debt, creditor.netBalance);
       if (amount >= 0.01) {
         settlements.push({
-          from: debtor.person,
-          to: creditor.person,
+          from: displayName(debtor.person),
+          to: displayName(creditor.person),
           amount,
         });
         debt -= amount;

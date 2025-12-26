@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import {
@@ -17,6 +17,7 @@ import {
 } from "./ui/select";
 import { Users, Plus, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { ParticipantGroup } from "@/hooks/useParticipants";
 
 type CarId = "eric-car" | "leo-car";
 
@@ -25,6 +26,9 @@ interface ParticipantsManagerProps {
   participantCars: Record<string, CarId | null>;
   participantFinished: Record<string, boolean>;
   participantDrinks: Record<string, boolean>;
+  groups: ParticipantGroup[];
+  onAddGroup: (name: string, members: string[]) => boolean;
+  onRemoveGroup: (id: string) => void;
   onAdd: (name: string, car: CarId | null) => boolean;
   onRemove: (name: string) => void;
   onChangeCar: (name: string, car: CarId | null) => void;
@@ -32,11 +36,31 @@ interface ParticipantsManagerProps {
   onSetDrinks: (name: string, drinks: boolean) => void;
 }
 
-export function ParticipantsManager({ participants, participantCars, participantFinished, participantDrinks, onAdd, onRemove, onChangeCar, onSetFinished, onSetDrinks }: ParticipantsManagerProps) {
+export function ParticipantsManager({
+  participants,
+  participantCars,
+  participantFinished,
+  participantDrinks,
+  groups,
+  onAddGroup,
+  onRemoveGroup,
+  onAdd,
+  onRemove,
+  onChangeCar,
+  onSetFinished,
+  onSetDrinks,
+}: ParticipantsManagerProps) {
   const [open, setOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newCar, setNewCar] = useState<CarId>("eric-car");
   const [newDrinks, setNewDrinks] = useState<boolean>(true);
+  const [groupName, setGroupName] = useState("");
+  const [selectedMembers, setSelectedMembers] = useState<Record<string, boolean>>({});
+
+  const availableForGrouping = useMemo(() => {
+    const grouped = new Set(groups.flatMap((g) => g.members.map((m) => m.toLowerCase())));
+    return participants.filter((p) => !grouped.has(p.toLowerCase()));
+  }, [groups, participants]);
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +100,36 @@ export function ParticipantsManager({ participants, participantCars, participant
     });
   };
 
+  const handleAddGroup = (e: React.FormEvent) => {
+    e.preventDefault();
+    const members = Object.entries(selectedMembers)
+      .filter(([, checked]) => checked)
+      .map(([name]) => name);
+    if (members.length < 2) {
+      toast({
+        title: "Selecione pelo menos 2 pessoas",
+        description: "Um grupo precisa ter duas ou mais pessoas",
+        variant: "destructive",
+      });
+      return;
+    }
+    const created = onAddGroup(groupName, members);
+    if (!created) {
+      toast({
+        title: "Não foi possível criar o grupo",
+        description: "Verifique se o nome é único e os membros não estão em outro grupo",
+        variant: "destructive",
+      });
+      return;
+    }
+    setGroupName("");
+    setSelectedMembers({});
+    toast({
+      title: "Grupo criado",
+      description: `${groupName} agrupou ${members.join(", ")}`,
+    });
+  };
+
   const handleRemove = (name: string) => {
     if (participants.length <= 2) {
       toast({
@@ -90,6 +144,10 @@ export function ParticipantsManager({ participants, participantCars, participant
       title: "Participante removido",
       description: `${name} foi removido da viagem`,
     });
+  };
+
+  const toggleMember = (name: string) => {
+    setSelectedMembers((prev) => ({ ...prev, [name]: !prev[name] }));
   };
 
   return (
@@ -192,9 +250,84 @@ export function ParticipantsManager({ participants, participantCars, participant
             ))}
           </div>
           
-          <p className="text-xs text-muted-foreground text-center">
-            Mínimo de 2 participantes necessários
-          </p>
+          <div className="pt-4 border-t border-border/50 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h4 className="text-sm font-semibold text-foreground">Grupos</h4>
+                <p className="text-xs text-muted-foreground">
+                  Agrupe participantes para compartilhar despesas e pagamentos
+                </p>
+              </div>
+              <span className="text-xs text-muted-foreground">{groups.length} grupo{groups.length === 1 ? "" : "s"}</span>
+            </div>
+
+            <form onSubmit={handleAddGroup} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <Input
+                placeholder="Nome do grupo (ex: Família)"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                maxLength={30}
+                className="w-full sm:flex-1 min-w-0"
+              />
+              <Button type="submit" size="sm" className="w-full sm:w-auto gap-2">
+                <Plus className="h-4 w-4" />
+                Criar grupo
+              </Button>
+            </form>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2 rounded-lg border border-border/50 p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Disponíveis</p>
+                {availableForGrouping.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Nenhum participante livre</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {availableForGrouping.map((person) => (
+                      <Button
+                        key={person}
+                        type="button"
+                        size="sm"
+                        variant={selectedMembers[person] ? "default" : "outline"}
+                        onClick={() => toggleMember(person)}
+                        className="rounded-full"
+                      >
+                        {person}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 rounded-lg border border-border/50 p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Grupos existentes</p>
+                {groups.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Nenhum grupo criado</p>
+                ) : (
+                  <div className="space-y-2">
+                    {groups.map((group) => (
+                      <div
+                        key={group.id}
+                        className="flex items-start justify-between gap-2 bg-muted/50 p-2 rounded-lg"
+                      >
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-foreground">{group.name}</p>
+                          <p className="text-xs text-muted-foreground">Membros: {group.members.join(", ")}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onRemoveGroup(group.id)}
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

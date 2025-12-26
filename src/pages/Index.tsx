@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useParticipants } from "@/hooks/useParticipants";
 import { BalanceCard } from "@/components/BalanceCard";
@@ -16,11 +17,16 @@ const Index = () => {
     participantCars,
     participantFinished,
     participantDrinks,
+    groups,
+    entities,
+    entityMembers,
     addParticipant,
     removeParticipant,
     setParticipantCar,
     setParticipantFinished,
     setParticipantDrinks,
+    addGroup,
+    removeGroup,
   } = useParticipants();
   const {
     expenses,
@@ -31,10 +37,26 @@ const Index = () => {
     addPayment,
     deletePayment,
     updatePayment,
-    balances,
+    personBalances,
+    groupBalances,
     totalExpenses,
     expensesByCategory,
-  } = useExpenses(participants, participantCars, participantDrinks);
+  } = useExpenses(participants, participantCars, participantDrinks, entities, entityMembers);
+
+  const [showIndividuals, setShowIndividuals] = useState(false);
+
+  const groupedMembers = useMemo(
+    () => new Set(groups.flatMap((g) => g.members.map((m) => m.toLowerCase()))),
+    [groups],
+  );
+
+  const visibleBalances = useMemo(() => {
+    if (showIndividuals || groupBalances.length === 0) {
+      return personBalances;
+    }
+    const ungrouped = personBalances.filter((p) => !groupedMembers.has(p.person.toLowerCase()));
+    return [...groupBalances, ...ungrouped];
+  }, [groupBalances, personBalances, showIndividuals, groupedMembers]);
 
   const carEricTotal = expensesByCategory["eric-car"] || 0;
   const carLeoTotal = expensesByCategory["leo-car"] || 0;
@@ -64,6 +86,9 @@ const Index = () => {
             participantCars={participantCars}
             participantFinished={participantFinished}
             participantDrinks={participantDrinks}
+            groups={groups}
+            onAddGroup={addGroup}
+            onRemoveGroup={removeGroup}
             onAdd={addParticipant}
             onRemove={removeParticipant}
             onChangeCar={setParticipantCar}
@@ -71,8 +96,8 @@ const Index = () => {
             onSetDrinks={setParticipantDrinks}
           />
           <div className="mt-4 flex justify-center gap-4 flex-wrap">
-            <AddExpenseDialog onAdd={addExpense} participants={participants} />
-            <AddPaymentDialog onAdd={addPayment} participants={participants} />
+            <AddExpenseDialog onAdd={addExpense} entities={entities} entityMembers={entityMembers} />
+            <AddPaymentDialog onAdd={addPayment} entities={entities} entityMembers={entityMembers} />
           </div>
         </header>
 
@@ -87,24 +112,53 @@ const Index = () => {
 
         {/* Balance Cards */}
         <section className="mb-8">
-          <h2 className="text-xl font-semibold text-foreground mb-4">Saldos Individuais</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-xl font-semibold text-foreground">
+                Saldos e Grupos
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Visualize por grupos ou individualmente
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowIndividuals((prev) => !prev)}
+              className={`inline-flex items-center gap-2 px-3 py-2 rounded-full border text-sm transition ${
+                showIndividuals
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted text-foreground border-border"
+              }`}
+            >
+              {showIndividuals ? "Mostrar grupos" : "Mostrar dados individuais"}
+            </button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {balances.map((balance) => (
-              <BalanceCard key={balance.person} balance={balance} />
+            {visibleBalances.map((balance) => (
+              <BalanceCard
+                key={balance.person}
+                balance={balance}
+                members={entityMembers[balance.person]}
+              />
             ))}
           </div>
         </section>
 
         {/* Settlement Summary */}
         <section className="mb-8">
-          <SettlementSummary balances={balances} />
+          <SettlementSummary
+            balances={visibleBalances}
+            entityMembers={entityMembers}
+            useGroups={!showIndividuals && groupBalances.length > 0}
+          />
         </section>
 
         {/* Expense List */}
         <section className="mb-8">
           <ExpenseList
             expenses={expenses}
-            participants={participants}
+            entities={entities}
+            entityMembers={entityMembers}
             onDelete={deleteExpense}
             onUpdate={updateExpense}
             onAdd={addExpense}
@@ -115,7 +169,8 @@ const Index = () => {
         <section>
           <PaymentList
             payments={payments}
-            participants={participants}
+            entities={entities}
+            entityMembers={entityMembers}
             onDelete={deletePayment}
             onUpdate={updatePayment}
             onAdd={addPayment}

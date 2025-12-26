@@ -26,13 +26,14 @@ import { toast } from "@/hooks/use-toast";
 
 interface PaymentListProps {
   payments: Payment[];
-  participants: string[];
+  entities: string[];
+  entityMembers: Record<string, string[]>;
   onDelete: (id: string) => void;
   onUpdate: (payment: Payment) => void;
   onAdd: (payment: Omit<Payment, "id">) => void;
 }
 
-export function PaymentList({ payments, participants, onDelete, onUpdate, onAdd }: PaymentListProps) {
+export function PaymentList({ payments, entities, entityMembers, onDelete, onUpdate, onAdd }: PaymentListProps) {
   const [filter, setFilter] = useState<Category | "all">("all");
   const [editing, setEditing] = useState<Payment | null>(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -114,7 +115,8 @@ export function PaymentList({ payments, participants, onDelete, onUpdate, onAdd 
           <h2 className="text-xl font-semibold text-foreground">Pagamentos</h2>
           <AddPaymentDialog
             onAdd={onAdd}
-            participants={participants}
+            entities={entities}
+            entityMembers={entityMembers}
             trigger={
               <Button
                 variant="ghost"
@@ -282,9 +284,9 @@ export function PaymentList({ payments, participants, onDelete, onUpdate, onAdd 
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {participants.map((person) => (
-                      <SelectItem key={person} value={person}>
-                        {person}
+                    {entities.map((entity) => (
+                      <SelectItem key={entity} value={entity}>
+                        {entityMembers[entity]?.length > 1 ? `${entity} (grupo)` : entity}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -298,9 +300,9 @@ export function PaymentList({ payments, participants, onDelete, onUpdate, onAdd 
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {participants.map((person) => (
-                      <SelectItem key={person} value={person}>
-                        {person}
+                    {entities.map((entity) => (
+                      <SelectItem key={entity} value={entity}>
+                        {entityMembers[entity]?.length > 1 ? `${entity} (grupo)` : entity}
                       </SelectItem>
                     ))}
                   </SelectContent>

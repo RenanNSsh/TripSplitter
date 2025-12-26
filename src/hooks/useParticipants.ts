@@ -13,7 +13,14 @@ interface StoredParticipant {
   drinks?: boolean;
 }
 
+export interface ParticipantGroup {
+  id: string;
+  name: string;
+  members: string[];
+}
+
 const STORAGE_KEY = "travel-participants";
+const GROUPS_STORAGE_KEY = "travel-participant-groups";
 
 interface FirestoreParticipant {
   name: string;
@@ -34,6 +41,29 @@ const inferDefaultCar = (name: string): CarId | null => {
   if (lower === "eric") return "eric-car";
   if (lower === "léo") return "leo-car";
   return null;
+};
+
+const loadGroups = (): ParticipantGroup[] => {
+  try {
+    const stored = localStorage.getItem(GROUPS_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((g) => g && typeof g.name === "string" && Array.isArray(g.members));
+      }
+    }
+  } catch (e) {
+    console.error("Failed to load participant groups:", e);
+  }
+  return [];
+};
+
+const saveGroups = (groups: ParticipantGroup[]) => {
+  try {
+    localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups));
+  } catch (e) {
+    console.error("Failed to save participant groups:", e);
+  }
 };
 
 const loadParticipants = (): StoredParticipant[] => {
@@ -84,6 +114,7 @@ const saveParticipants = (participants: StoredParticipant[]) => {
 
 export function useParticipants() {
   const [participants, setParticipants] = useState<StoredParticipant[]>(loadParticipants);
+  const [groups, setGroups] = useState<ParticipantGroup[]>(loadGroups);
 
   useEffect(() => {
     if (!isFirebaseConfigured || !db) return;
@@ -201,6 +232,14 @@ export function useParticipants() {
       return updated;
     });
 
+    setGroups((prev) => {
+      const updatedGroups = prev
+        .map((g) => ({ ...g, members: g.members.filter((m) => m !== name) }))
+        .filter((g) => g.members.length > 0);
+      saveGroups(updatedGroups);
+      return updatedGroups;
+    });
+
     void logActivity({ action: "delete", entity: "participant", entityId: name });
   }, []);
 
@@ -312,6 +351,76 @@ export function useParticipants() {
     });
   }, []);
 
+  const addGroup = useCallback(
+    (name: string, members: string[]) => {
+      const trimmedName = name.trim();
+      const uniqueMembers = Array.from(new Set(members.map((m) => m.trim()).filter(Boolean)));
+      if (!trimmedName || uniqueMembers.length < 2) return false;
+
+      const lowerName = trimmedName.toLowerCase();
+      if (
+        groups.some((g) => g.name.toLowerCase() === lowerName) ||
+        participants.some((p) => p.name.toLowerCase() === lowerName)
+      ) {
+        return false;
+      }
+
+      // Avoid grouping someone twice
+      const alreadyGrouped = new Set(groups.flatMap((g) => g.members.map((m) => m.toLowerCase())));
+      if (uniqueMembers.some((m) => alreadyGrouped.has(m.toLowerCase()))) {
+        return false;
+      }
+
+      const allExist = uniqueMembers.every((m) =>
+        participants.some((p) => p.name.toLowerCase() === m.toLowerCase()),
+      );
+      if (!allExist) return false;
+
+      const newGroup: ParticipantGroup = {
+        id: crypto.randomUUID(),
+        name: trimmedName,
+        members: uniqueMembers,
+      };
+
+      setGroups((prev) => {
+        const updated = [...prev, newGroup];
+        saveGroups(updated);
+        return updated;
+      });
+      return true;
+    },
+    [groups, participants],
+  );
+
+  const removeGroup = useCallback((groupId: string) => {
+    setGroups((prev) => {
+      const updated = prev.filter((g) => g.id !== groupId);
+      saveGroups(updated);
+      return updated;
+    });
+  }, []);
+
+  const groupedMembers = useMemo(() => new Set(groups.flatMap((g) => g.members)), [groups]);
+
+  const entities = useMemo(
+    () => [
+      ...groups.map((g) => g.name),
+      ...participants.filter((p) => !groupedMembers.has(p.name)).map((p) => p.name),
+    ],
+    [groups, participants, groupedMembers],
+  );
+
+  const entityMembers = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const p of participants) {
+      map[p.name] = [p.name];
+    }
+    for (const g of groups) {
+      map[g.name] = g.members;
+    }
+    return map;
+  }, [participants, groups]);
+
   const participantNames = useMemo(() => participants.map((p) => p.name), [participants]);
 
   const participantCars = useMemo(
@@ -346,10 +455,15 @@ export function useParticipants() {
     participantCars,
     participantFinished,
     participantDrinks,
+    groups,
+    entities,
+    entityMembers,
     addParticipant,
     removeParticipant,
     setParticipantCar,
     setParticipantFinished,
     setParticipantDrinks,
+    addGroup,
+    removeGroup,
   };
 }
