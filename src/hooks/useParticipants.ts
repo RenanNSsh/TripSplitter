@@ -29,6 +29,12 @@ interface FirestoreParticipant {
   drinks: boolean;
 }
 
+interface FirestoreGroup {
+  id: string;
+  name: string;
+  members: string[];
+}
+
 const toParticipantLogData = (participant: StoredParticipant) => ({
   name: participant.name,
   car: participant.car ?? null,
@@ -120,15 +126,20 @@ export function useParticipants() {
     if (!isFirebaseConfigured || !db) return;
 
     const participantsRef = collection(db, "participants");
+    const groupsRef = collection(db, "participant-groups");
 
     let unsubscribe: (() => void) | undefined;
+    let unsubscribeGroups: (() => void) | undefined;
 
     (async () => {
       try {
         const localParticipants = loadParticipants();
-        const snap = await getDocs(participantsRef);
+        const localGroups = loadGroups();
 
-        if (snap.empty && localParticipants.length > 0) {
+        const snapshot = await getDocs(participantsRef);
+        const groupSnap = await getDocs(groupsRef);
+
+        if (snapshot.empty && localParticipants.length > 0) {
           void logActivity({
             action: "seed",
             entity: "participants",
@@ -146,12 +157,27 @@ export function useParticipants() {
           );
         }
 
+        if (groupSnap.empty && localGroups.length > 0) {
+          void logActivity({
+            action: "seed",
+            entity: "participant-groups",
+            data: { count: localGroups.length },
+          });
+          await Promise.all(
+            localGroups.map((group) =>
+              setDoc(doc(groupsRef, group.id), {
+                ...group,
+              } satisfies FirestoreGroup),
+            ),
+          );
+        }
+
         unsubscribe = onSnapshot(
           participantsRef,
-          (snapshot) => {
-            const remote: StoredParticipant[] = snapshot.docs.map((d) => {
-              const data = d.data() as Partial<FirestoreParticipant>;
-              const name = data.name ?? d.id;
+          (participants) => {
+            const remoteParticipants = participants.docs.map((doc) => {
+              const data = doc.data() as FirestoreParticipant;
+              const name = data.name ?? doc.id;
               return {
                 name,
                 car: (data.car as CarId | null | undefined) ?? inferDefaultCar(name),
@@ -159,11 +185,30 @@ export function useParticipants() {
                 drinks: data.drinks ?? true,
               };
             });
-            setParticipants(remote);
-            saveParticipants(remote);
+            setParticipants(remoteParticipants);
+            saveParticipants(remoteParticipants);
           },
           (error) => {
             console.error("Firestore participants subscription error:", error);
+          },
+        );
+
+        unsubscribeGroups = onSnapshot(
+          groupsRef,
+          (groupSnapshot) => {
+            const remoteGroups = groupSnapshot.docs.map((d) => {
+              const data = d.data() as FirestoreGroup;
+              return {
+                id: data.id ?? d.id,
+                name: data.name,
+                members: data.members ?? [],
+              };
+            });
+            setGroups(remoteGroups);
+            saveGroups(remoteGroups);
+          },
+          (error) => {
+            console.error("Firestore participant groups subscription error:", error);
           },
         );
       } catch (e) {
@@ -174,6 +219,9 @@ export function useParticipants() {
     return () => {
       if (unsubscribe) {
         unsubscribe();
+      }
+      if (unsubscribeGroups) {
+        unsubscribeGroups();
       }
     };
   }, []);
@@ -233,11 +281,19 @@ export function useParticipants() {
     });
 
     setGroups((prev) => {
-      const updatedGroups = prev
+      const updated = prev
         .map((g) => ({ ...g, members: g.members.filter((m) => m !== name) }))
         .filter((g) => g.members.length > 0);
-      saveGroups(updatedGroups);
-      return updatedGroups;
+      saveGroups(updated);
+      if (isFirebaseConfigured && db) {
+        const groupsRef = collection(db, "participant-groups");
+        updated.forEach((group) => {
+          void setDoc(doc(groupsRef, group.id), group).catch((e) => {
+            console.error("Failed to update participant group in Firestore:", e);
+          });
+        });
+      }
+      return updated;
     });
 
     void logActivity({ action: "delete", entity: "participant", entityId: name });
@@ -385,6 +441,12 @@ export function useParticipants() {
       setGroups((prev) => {
         const updated = [...prev, newGroup];
         saveGroups(updated);
+        if (isFirebaseConfigured && db) {
+          const groupsRef = collection(db, "participant-groups");
+          void setDoc(doc(groupsRef, newGroup.id), newGroup as FirestoreGroup).catch((e) => {
+            console.error("Failed to save participant group to Firestore:", e);
+          });
+        }
         return updated;
       });
       return true;
@@ -396,6 +458,12 @@ export function useParticipants() {
     setGroups((prev) => {
       const updated = prev.filter((g) => g.id !== groupId);
       saveGroups(updated);
+      if (isFirebaseConfigured && db) {
+        const groupsRef = collection(db, "participant-groups");
+        void deleteDoc(doc(groupsRef, groupId)).catch((e) => {
+          console.error("Failed to delete participant group from Firestore:", e);
+        });
+      }
       return updated;
     });
   }, []);
